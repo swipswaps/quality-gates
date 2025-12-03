@@ -1,0 +1,68 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # =============================================================================
+  # Frontend: TypeScript / React / ESLint
+  # =============================================================================
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint (TypeScript/React)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: typescript
+        name: TypeScript Type Check
+        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false
+
+      - id: bundle-size
+        name: Bundle Size Check
+        entry: bash -c 'cd frontend && npm run build 2>&1 | grep -q "larger than 500 kB" && echo "ERROR: Bundle too large. Use dynamic imports for heavy deps." && exit 1 || exit 0'
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        pass_filenames: false
+        stages: [push]  # Only on push, not every commit
+
+  # =============================================================================
+  # Backend: Python / Ruff / Mypy
+  # =============================================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.1
+    hooks:
+      - id: ruff
+        name: Ruff Lint
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: Ruff Format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: Mypy Type Check
+        additional_dependencies:
+          - types-Flask
+          - types-psycopg2
+          - types-requests
+        args: [--config-file=configs/pyproject.toml]
+
+  # =============================================================================
+  # General: Trailing whitespace, YAML, JSON
+  # =============================================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: detect-private-key
